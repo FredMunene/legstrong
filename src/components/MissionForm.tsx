@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Rocket, MapPin, Calendar, Users } from 'lucide-react';
+import { Rocket, MapPin, Calendar, Users, Package, Clock, Target } from 'lucide-react';
 
 type MissionFormData = {
   location: string;
@@ -7,6 +7,10 @@ type MissionFormData = {
   days: number;
   scientists: number;
   mission_type: string;
+  launch_vehicle: string;
+  mission_phase: string;
+  crew_size: number;
+  mission_duration: number;
 };
 
 type MissionFormProps = {
@@ -21,6 +25,10 @@ export function MissionForm({ onSubmit, isLoading }: MissionFormProps) {
     days: 3,
     scientists: 2,
     mission_type: 'exploration',
+    launch_vehicle: 'SLS',
+    mission_phase: 'surface',
+    crew_size: 4,
+    mission_duration: 30,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -98,17 +106,56 @@ export function MissionForm({ onSubmit, isLoading }: MissionFormProps) {
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                 <Users className="w-4 h-4" />
-                Number of Scientists
+                Crew Size
               </label>
               <input
                 type="number"
                 min="1"
                 max="20"
-                value={formData.scientists}
-                onChange={(e) => updateField('scientists', parseInt(e.target.value))}
+                value={formData.crew_size}
+                onChange={(e) => updateField('crew_size', parseInt(e.target.value))}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <Package className="w-4 h-4" />
+                Launch Vehicle
+              </label>
+              <select
+                value={formData.launch_vehicle}
+                onChange={(e) => updateField('launch_vehicle', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="SLS">Space Launch System (SLS)</option>
+                <option value="Falcon Heavy">Falcon Heavy</option>
+                <option value="Starship">Starship</option>
+                <option value="Vulcan">Vulcan Centaur</option>
+                <option value="New Glenn">New Glenn</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <Target className="w-4 h-4" />
+                Mission Phase
+              </label>
+              <select
+                value={formData.mission_phase}
+                onChange={(e) => updateField('mission_phase', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="surface">Surface Operations</option>
+                <option value="transit">Transit</option>
+                <option value="orbital">Orbital</option>
+                <option value="mixed">Mixed Operations</option>
+              </select>
             </div>
           </div>
 

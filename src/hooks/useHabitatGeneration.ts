@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase, Mission, Design, Component, ValidationResults } from '../lib/supabase';
+import { Mission, Design, Component, ValidationResults } from '../lib/supabase';
 
 type MissionFormData = {
   location: string;
