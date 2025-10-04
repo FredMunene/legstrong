@@ -141,4 +141,3 @@ export function MissionForm({ onSubmit, isLoading }: MissionFormProps) {
     </form>
   );
 }
-}
