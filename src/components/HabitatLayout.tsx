@@ -1,15 +1,26 @@
 import { useRef, useEffect, useState } from 'react';
 import { Component } from '../lib/supabase';
 import { HabitatGeometry } from '../types';
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause, RotateCcw, Shapes, Palette, Ruler, Zap } from 'lucide-react';
 
 type HabitatLayoutProps = {
   geometry: HabitatGeometry;
   components: Component[];
   isGenerating: boolean;
+  onChange: (geometry: HabitatGeometry) => void;
 };
 
-export function HabitatLayout({ geometry, components, isGenerating }: HabitatLayoutProps) {
+export function HabitatLayout({ geometry, components, isGenerating, onChange }: HabitatLayoutProps) {
+  const updateGeometry = (updates: Partial<HabitatGeometry>) => {
+    onChange({
+      ...geometry,
+      ...updates,
+      dimensions: {
+        ...geometry.dimensions,
+        ...(updates.dimensions || {}),
+      },
+    });
+  };
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rotating, setRotating] = useState(true);
   const [currentShape, setCurrentShape] = useState<'cylinder' | 'sphere' | 'cuboid' | 'torus' | 'cone'>('cylinder');
@@ -384,195 +395,338 @@ export function HabitatLayout({ geometry, components, isGenerating }: HabitatLay
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-bold text-gray-900">Habitat 3D Preview</h3>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setRotating(!rotating)}
-            className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-          >
-            {rotating ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-          </button>
-          <button
-            onClick={() => rotationRef.current = 0}
-            className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-        </div>
+      <div className="flex items-center gap-3 mb-6">
+        <Shapes className="w-6 h-6 text-blue-600" />
+        <h3 className="text-xl font-bold text-gray-900">Habitat Design</h3>
       </div>
-
-      <div className="relative bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-lg overflow-hidden border-2 border-gray-700">
-        <canvas
-          ref={canvasRef}
-          width={600}
-          height={500}
-          className="w-full"
-        />
-        
-        <div className="absolute top-4 right-4 bg-black bg-opacity-70 px-3 py-2 rounded text-white text-xs font-mono">
-          {currentShape.toUpperCase()} HABITAT
+      
+      <div className="space-y-6">
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+            <Shapes className="w-4 h-4" />
+            Habitat Shape
+          </label>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { value: 'sphere', label: 'Sphere', description: 'Spherical habitat' },
+              { value: 'cylinder', label: 'Cylinder', description: 'Cylindrical habitat' },
+              { value: 'cuboid', label: 'Cuboid', description: 'Rectangular habitat' }
+            ].map((shape) => (
+              <button
+                key={shape.value}
+                onClick={() => {
+                  const newShape = shape.value as HabitatGeometry["shape"];
+                  const defaultDimensions = {
+                    sphere: { radius: 5 },
+                    cylinder: { radius: 5, height: 10 },
+                    cuboid: { width: 8, height: 10, depth: 8 },
+                  };
+                  updateGeometry({
+                    shape: newShape,
+                    dimensions: defaultDimensions[newShape],
+                  });
+                  setCurrentShape(newShape as any);
+                }}
+                className={`p-3 rounded-lg border-2 transition-all ${
+                  geometry.shape === shape.value
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="font-medium text-sm">{shape.label}</div>
+                <div className="text-xs text-gray-500 mt-1">{shape.description}</div>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-        <label className="block text-sm font-medium text-gray-700 mb-3">Select NASA Habitat Shape</label>
-        <div className="grid grid-cols-5 gap-2">
-          {[
-            { value: 'cylinder', label: 'Cylinder', desc: 'ISS Module' },
-            { value: 'sphere', label: 'Sphere', desc: 'Pressure Vessel' },
-            { value: 'cuboid', label: 'Cuboid', desc: 'Cargo Bay' },
-            { value: 'torus', label: 'Torus', desc: 'Rotating Ring' },
-            { value: 'cone', label: 'Cone', desc: 'Capsule/Lander' }
-          ].map((shape) => (
-            <button
-              key={shape.value}
-              onClick={() => setCurrentShape(shape.value as any)}
-              className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                currentShape === shape.value
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'bg-white text-gray-700 border-2 border-gray-300 hover:border-blue-400'
-              }`}
-            >
-              <div>{shape.label}</div>
-              <div className="text-[10px] opacity-75 mt-1">{shape.desc}</div>
-            </button>
-          ))}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+            <Zap className="w-4 h-4" />
+            Quick Presets
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { name: 'Small Lab', shape: 'cylinder' as const, dimensions: { radius: 3, height: 6 }, color: '#3b82f6' },
+              { name: 'Research Station', shape: 'cuboid' as const, dimensions: { width: 12, height: 8, depth: 12 }, color: '#10b981' },
+              { name: 'Spherical Base', shape: 'sphere' as const, dimensions: { radius: 8 }, color: '#f59e0b' },
+              { name: 'Large Habitat', shape: 'cylinder' as const, dimensions: { radius: 8, height: 20 }, color: '#8b5cf6' }
+            ].map((preset) => (
+              <button
+                key={preset.name}
+                onClick={() => {
+                  onChange(preset);
+                  setCurrentShape(preset.shape as any);
+                }}
+                className="p-2 text-xs rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-left"
+              >
+                <div className="font-medium text-gray-900">{preset.name}</div>
+                <div className="text-gray-500">
+                  {preset.shape === 'sphere' && `${preset.dimensions.radius}m radius`}
+                  {preset.shape === 'cylinder' && `${preset.dimensions.radius}m × ${preset.dimensions.height}m`}
+                  {preset.shape === 'cuboid' && `${preset.dimensions.width}m × ${preset.dimensions.height}m × ${preset.dimensions.depth}m`}
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3">
-        <label className="block text-sm font-medium text-gray-700">Adjust Size</label>
-        
-        {currentShape === 'sphere' && (
+        {geometry.shape === "sphere" && (
           <div>
-            <div className="flex justify-between text-xs text-gray-600 mb-1">
-              <span>Radius</span>
-              <span className="font-medium">{dimensions.radius.toFixed(0)}m</span>
-            </div>
-            <input
-              type="range"
-              min="40"
-              max="150"
-              value={dimensions.radius}
-              onChange={(e) => setDimensions({...dimensions, radius: Number(e.target.value)})}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-            />
-            <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-              <span>Small</span>
-              <span>Medium (Default)</span>
-              <span>Large</span>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+              <Ruler className="w-4 h-4" />
+              Dimensions
+            </label>
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">Radius</span>
+                  <span className="text-sm font-medium text-gray-900">{geometry.dimensions.radius || 5}m</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  value={geometry.dimensions.radius || 5}
+                  onChange={(e) => {
+                    updateGeometry({
+                      dimensions: { radius: +e.target.value },
+                    });
+                  }}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>1m</span>
+                  <span>50m</span>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {(currentShape === 'cylinder' || currentShape === 'cone' || currentShape === 'torus') && (
-          <>
-            <div>
-              <div className="flex justify-between text-xs text-gray-600 mb-1">
-                <span>{currentShape === 'torus' ? 'Major Radius' : 'Radius'}</span>
-                <span className="font-medium">{dimensions.radius.toFixed(0)}m</span>
-              </div>
-              <input
-                type="range"
-                min="40"
-                max="150"
-                value={dimensions.radius}
-                onChange={(e) => setDimensions({...dimensions, radius: Number(e.target.value)})}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-                <span>Small</span>
-                <span>Medium (Default)</span>
-                <span>Large</span>
-              </div>
-            </div>
-            {currentShape !== 'torus' && (
+        {geometry.shape === "cylinder" && (
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+              <Ruler className="w-4 h-4" />
+              Dimensions
+            </label>
+            <div className="space-y-4">
               <div>
-                <div className="flex justify-between text-xs text-gray-600 mb-1">
-                  <span>Height</span>
-                  <span className="font-medium">{dimensions.height.toFixed(0)}m</span>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">Radius</span>
+                  <span className="text-sm font-medium text-gray-900">{geometry.dimensions.radius || 5}m</span>
                 </div>
                 <input
                   type="range"
-                  min="60"
-                  max="200"
-                  value={dimensions.height}
-                  onChange={(e) => setDimensions({...dimensions, height: Number(e.target.value)})}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  min="1"
+                  max="20"
+                  value={geometry.dimensions.radius || 5}
+                  onChange={(e) => {
+                    updateGeometry({
+                      dimensions: { ...geometry.dimensions, radius: +e.target.value },
+                    });
+                  }}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                 />
-                <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-                  <span>Short</span>
-                  <span>Medium (Default)</span>
-                  <span>Tall</span>
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>1m</span>
+                  <span>20m</span>
                 </div>
               </div>
-            )}
-          </>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">Height</span>
+                  <span className="text-sm font-medium text-gray-900">{geometry.dimensions.height || 10}m</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  value={geometry.dimensions.height || 10}
+                  onChange={(e) => {
+                    updateGeometry({
+                      dimensions: { ...geometry.dimensions, height: +e.target.value },
+                    });
+                  }}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>1m</span>
+                  <span>50m</span>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
-        {currentShape === 'cuboid' && (
-          <>
-            <div>
-              <div className="flex justify-between text-xs text-gray-600 mb-1">
-                <span>Width</span>
-                <span className="font-medium">{dimensions.width.toFixed(0)}m</span>
+        {geometry.shape === "cuboid" && (
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+              <Ruler className="w-4 h-4" />
+              Dimensions
+            </label>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">Width</span>
+                  <span className="text-sm font-medium text-gray-900">{geometry.dimensions.width || 8}m</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  value={geometry.dimensions.width || 8}
+                  onChange={(e) => {
+                    updateGeometry({
+                      dimensions: { ...geometry.dimensions, width: +e.target.value },
+                    });
+                  }}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>1m</span>
+                  <span>50m</span>
+                </div>
               </div>
-              <input
-                type="range"
-                min="50"
-                max="150"
-                value={dimensions.width}
-                onChange={(e) => setDimensions({...dimensions, width: Number(e.target.value)})}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-                <span>Narrow</span>
-                <span>Medium (Default)</span>
-                <span>Wide</span>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">Depth</span>
+                  <span className="text-sm font-medium text-gray-900">{geometry.dimensions.depth || 8}m</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  value={geometry.dimensions.depth || 8}
+                  onChange={(e) => {
+                    updateGeometry({
+                      dimensions: { ...geometry.dimensions, depth: +e.target.value },
+                    });
+                  }}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>1m</span>
+                  <span>50m</span>
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">Height</span>
+                  <span className="text-sm font-medium text-gray-900">{geometry.dimensions.height || 10}m</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  value={geometry.dimensions.height || 10}
+                  onChange={(e) => {
+                    updateGeometry({
+                      dimensions: { ...geometry.dimensions, height: +e.target.value },
+                    });
+                  }}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>1m</span>
+                  <span>50m</span>
+                </div>
               </div>
             </div>
-            <div>
-              <div className="flex justify-between text-xs text-gray-600 mb-1">
-                <span>Height</span>
-                <span className="font-medium">{dimensions.height.toFixed(0)}m</span>
-              </div>
-              <input
-                type="range"
-                min="60"
-                max="180"
-                value={dimensions.height}
-                onChange={(e) => setDimensions({...dimensions, height: Number(e.target.value)})}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-                <span>Short</span>
-                <span>Medium (Default)</span>
-                <span>Tall</span>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-xs text-gray-600 mb-1">
-                <span>Depth</span>
-                <span className="font-medium">{dimensions.depth.toFixed(0)}m</span>
-              </div>
-              <input
-                type="range"
-                min="50"
-                max="150"
-                value={dimensions.depth}
-                onChange={(e) => setDimensions({...dimensions, depth: Number(e.target.value)})}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-                <span>Shallow</span>
-                <span>Medium (Default)</span>
-                <span>Deep</span>
-              </div>
-            </div>
-          </>
+          </div>
         )}
+
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+            <Palette className="w-4 h-4" />
+            Habitat Color
+          </label>
+          <div className="flex items-center gap-4">
+            <input
+              type="color"
+              value={geometry.color}
+              onChange={(e) => {
+                updateGeometry({ color: e.target.value });
+              }}
+              className="w-16 h-12 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 transition-colors"
+            />
+            <div className="flex-1">
+              <div className="text-sm font-medium text-gray-900 mb-1">Color Preview</div>
+              <div className="text-xs text-gray-500">{geometry.color}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-gray-200">
+          <div className="bg-blue-50 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-blue-900">Habitat Volume</div>
+                <div className="text-2xl font-bold text-blue-700">
+                  {calculateVolume(geometry.shape, geometry.dimensions).toFixed(1)} m³
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-blue-600">Capacity</div>
+                <div className="text-sm font-medium text-blue-800">
+                  ~{Math.floor(calculateVolume(geometry.shape, geometry.dimensions) / 50)} people
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-lg font-semibold text-gray-900">3D Preview</h4>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setRotating(!rotating)}
+                className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+              >
+                {rotating ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={() => rotationRef.current = 0}
+                className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="relative bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-lg overflow-hidden border-2 border-gray-700">
+            <canvas
+              ref={canvasRef}
+              width={600}
+              height={400}
+              className="w-full"
+            />
+            
+            <div className="absolute top-4 right-4 bg-black bg-opacity-70 px-3 py-2 rounded text-white text-xs font-mono">
+              {currentShape.toUpperCase()} HABITAT
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
+}
+
+function calculateVolume(
+  shape: HabitatGeometry["shape"],
+  dimensions: HabitatGeometry["dimensions"]
+): number {
+  switch (shape) {
+    case "sphere":
+      return (4 / 3) * Math.PI * Math.pow(dimensions.radius || 5, 3);
+    case "cylinder":
+      return Math.PI * Math.pow(dimensions.radius || 5, 2) * (dimensions.height || 10);
+    case "cuboid":
+      return (
+        (dimensions.width || 8) *
+        (dimensions.height || 10) *
+        (dimensions.depth || 8)
+      );
+  }
 }

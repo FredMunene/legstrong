@@ -1,8 +1,8 @@
 import { Rocket } from 'lucide-react';
 import { MissionForm } from './components/MissionForm';
-import { AssemblyView } from './components/AssemblyView';
+
 import { ValidationPanel } from './components/ValidationPanel';
-import { HabitatControls } from './components/HabitatControls';
+
 import { HabitatVisualization } from './components/HabitatVisualization';
 import { HabitatLayout } from './components/HabitatLayout';
 import { FunctionalAreaDesigner } from './components/FunctionalAreaDesigner';
@@ -59,13 +59,15 @@ function App() {
                 }} 
                 isLoading={isGenerating} 
               />
-              <HabitatControls 
-                value={habitatGeometry} 
-                onChange={setHabitatGeometry} 
-              />
             </div>
             <div className="space-y-6">
-              <HabitatVisualization geometry={habitatGeometry} />
+              {missionData && functionalAreas.length > 0 && (
+                <Habitat3DView
+                  habitatGeometry={habitatGeometry}
+                  crewSize={missionData.crew_size}
+                  areas={functionalAreas}
+                />
+              )}
             </div>
           </div>
 
@@ -77,46 +79,38 @@ function App() {
                 onAreasChange={setFunctionalAreas}
               />
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Habitat3DView
-                  habitatGeometry={habitatGeometry}
-                  crewSize={missionData.crew_size}
+              {functionalAreas.length > 0 && (
+                <QuantitativeAnalysis
                   areas={functionalAreas}
+                  crewSize={missionData.crew_size}
+                  habitatVolume={(() => {
+                    const { shape, dimensions } = habitatGeometry;
+                    switch (shape) {
+                      case 'sphere':
+                        return (4 / 3) * Math.PI * Math.pow(dimensions.radius || 5, 3);
+                      case 'cylinder':
+                        return Math.PI * Math.pow(dimensions.radius || 5, 2) * (dimensions.height || 10);
+                      case 'cuboid':
+                        return (dimensions.width || 8) * (dimensions.height || 10) * (dimensions.depth || 8);
+                      default:
+                        return 0;
+                    }
+                  })()}
+                  habitatArea={(() => {
+                    const { shape, dimensions } = habitatGeometry;
+                    switch (shape) {
+                      case 'sphere':
+                        return 4 * Math.PI * Math.pow(dimensions.radius || 5, 2);
+                      case 'cylinder':
+                        return 2 * Math.PI * Math.pow(dimensions.radius || 5, 2) + 2 * Math.PI * (dimensions.radius || 5) * (dimensions.height || 10);
+                      case 'cuboid':
+                        return 2 * ((dimensions.width || 8) * (dimensions.height || 10) + (dimensions.width || 8) * (dimensions.depth || 8) + (dimensions.height || 10) * (dimensions.depth || 8));
+                      default:
+                        return 0;
+                    }
+                  })()}
                 />
-                
-                {functionalAreas.length > 0 && (
-                  <QuantitativeAnalysis
-                    areas={functionalAreas}
-                    crewSize={missionData.crew_size}
-                    habitatVolume={(() => {
-                      const { shape, dimensions } = habitatGeometry;
-                      switch (shape) {
-                        case 'sphere':
-                          return (4 / 3) * Math.PI * Math.pow(dimensions.radius || 5, 3);
-                        case 'cylinder':
-                          return Math.PI * Math.pow(dimensions.radius || 5, 2) * (dimensions.height || 10);
-                        case 'cuboid':
-                          return (dimensions.width || 8) * (dimensions.height || 10) * (dimensions.depth || 8);
-                        default:
-                          return 0;
-                      }
-                    })()}
-                    habitatArea={(() => {
-                      const { shape, dimensions } = habitatGeometry;
-                      switch (shape) {
-                        case 'sphere':
-                          return 4 * Math.PI * Math.pow(dimensions.radius || 5, 2);
-                        case 'cylinder':
-                          return 2 * Math.PI * Math.pow(dimensions.radius || 5, 2) + 2 * Math.PI * (dimensions.radius || 5) * (dimensions.height || 10);
-                        case 'cuboid':
-                          return 2 * ((dimensions.width || 8) * (dimensions.height || 10) + (dimensions.width || 8) * (dimensions.depth || 8) + (dimensions.height || 10) * (dimensions.depth || 8));
-                        default:
-                          return 0;
-                      }
-                    })()}
-                  />
-                )}
-              </div>
+              )}
             </div>
           )}
 
@@ -126,12 +120,12 @@ function App() {
             </div>
           )}
 
-          <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <AssemblyView components={components} isGenerating={isGenerating} />
+          <div className="w-full max-w-6xl">
             <HabitatLayout 
               geometry={habitatGeometry} 
               components={components} 
-              isGenerating={isGenerating} 
+              isGenerating={isGenerating}
+              onChange={setHabitatGeometry}
             />
           </div>
 
